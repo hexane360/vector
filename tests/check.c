@@ -129,6 +129,45 @@ START_TEST(test_vec_swap) {
     vector_free_char(&vec);
 }
 
+int cmp_char(char a, char b) {
+    if ((a == 'e' && b == 'f') ||
+        (a == 'f' && b == 'e')) return 0;
+    return (int)a - (int)b;
+}
+
+START_TEST(test_vec_sort_inplace) {
+    vector_char vec = vector_lit_char(6, 'd', 'f', 'c', 'e', 'b', 'a');
+
+    vector_sort_inplace_char(&vec, cmp_char);
+
+    ck_assert_int_eq(0, vector_push_char(&vec, '\0'));
+    // tests stability as well
+    ck_assert_str_eq(vec.data, "abcdfe");
+    vector_free_char(&vec);
+}
+
+START_TEST(test_vec_binary_search) {
+    vector_char vec = vector_lit_char(6, 'B', 'D', 'b', 'c', 'e', 'y');
+
+    size_t index = 0;
+    ck_assert(vector_binary_search_char(&vec, 'f', &index, cmp_char));
+    ck_assert_uint_eq(index, 4);
+
+    ck_assert(!vector_binary_search_char(&vec, 'A', &index, cmp_char));
+    ck_assert_uint_eq(index, 0);
+
+    ck_assert(!vector_binary_search_char(&vec, 'z', &index, cmp_char));
+    ck_assert_uint_eq(index, 6);
+
+    ck_assert(vector_binary_search_char(&vec, 'y', &index, cmp_char));
+    ck_assert_uint_eq(index, 5);
+
+    ck_assert(vector_binary_search_char(&vec, 'B', &index, cmp_char));
+    ck_assert_uint_eq(index, 0);
+
+    vector_free_char(&vec);
+}
+
 Suite *suite() {
     Suite *s;
     TCase *tc;
@@ -142,6 +181,8 @@ Suite *suite() {
     tcase_add_test(tc, test_vec_insert);
     tcase_add_test(tc, test_vec_replace);
     tcase_add_test(tc, test_vec_swap);
+    tcase_add_test(tc, test_vec_sort_inplace);
+    tcase_add_test(tc, test_vec_binary_search);
     suite_add_tcase(s, tc);
     return s;
 }

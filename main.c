@@ -7,12 +7,10 @@
 #include "vector.h"
 #undef TYPE
 
-
 int cmp_char(char a, char b) {
     // positive if a > b, negative if b > a, zero if a == b
     return (int)a - (int)b;
 }
-
 
 int main(void) {
     vector_char v1 = vector_new_char();

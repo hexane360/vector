@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #ifndef VECTOR_H
     #define CONCAT_(a, b) a ## b
@@ -179,4 +180,37 @@ void GENERIC(vector_sort_inplace_)(VEC_TYPE *vec, int (*cmp_func)(TYPE, TYPE)) {
             GENERIC(vector_swap_unchecked_)(vec, j-1, j);
         }
     }
+}
+
+bool GENERIC(vector_binary_search_)(VEC_TYPE *vec, TYPE val, size_t *index, int (*cmp_func)(TYPE, TYPE)) {
+    size_t search_start = 0;
+    size_t search_size = vec->size;
+    size_t pivot = 0;
+
+    if (!search_size) {
+        *index = 0;
+        return false;
+    }
+    //printf("size: %zu\n", search_size);
+
+    // this is a pretty horrible implementation
+    while (search_size > 0) {
+        pivot = search_size / 2;
+        //printf("start: %zu size: %zu pivot: %zu\n", search_start, search_size, pivot);
+
+        int result = cmp_func(val, vec->data[search_start + pivot]);
+        if (result == 0) { // equal
+            *index = search_start + pivot;
+            return true;
+        }
+        if (result > 0) { // pivot < val
+            search_start += pivot + 1;
+            search_size -= pivot + 1;
+        } else {
+            search_size = pivot;
+        }
+    }
+    //printf("end start: %zu size: %zu pivot: %zu\n", search_start, search_size, pivot);
+    *index = search_start;
+    return false;
 }
