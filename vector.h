@@ -1,8 +1,9 @@
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifndef VECTOR_H
     #define CONCAT_(a, b) a ## b
@@ -13,6 +14,7 @@
 
     #define VECTOR_H
 #endif
+
 #define VEC_TYPE GENERIC(vector_)
 
 typedef struct {
@@ -20,10 +22,6 @@ typedef struct {
     size_t cap;
     TYPE *data;
 } VEC_TYPE;
-
-void GENERIC(vector_init_)(VEC_TYPE *vec) {
-    *vec = (VEC_TYPE) { 0, 0, NULL };
-}
 
 int GENERIC(vector_reserve_)(VEC_TYPE *vec, size_t cap) {
     if (vec->cap >= cap) return 0;
@@ -35,21 +33,40 @@ int GENERIC(vector_reserve_)(VEC_TYPE *vec, size_t cap) {
     return 0;
 }
 
+void GENERIC(vector_init_)(VEC_TYPE *vec) {
+    *vec = (VEC_TYPE) { 0, 0, NULL };
+}
+
 int GENERIC(vector_init_cap_)(VEC_TYPE *vec, size_t cap) {
     *vec = (VEC_TYPE) { 0, 0, NULL };
     return GENERIC(vector_reserve_)(vec, cap);
 }
 
+void GENERIC(vector_init_raw_)(VEC_TYPE *vec, TYPE *data, size_t cap, size_t size) {
+    *vec = (VEC_TYPE) { size, cap, data };
+}
+
+int GENERIC(vector_init_copy_)(VEC_TYPE *restrict vec, const TYPE *restrict data, size_t size) {
+    if (GENERIC(vector_init_cap_)(vec, size)) return -1;
+    memcpy(vec->data, data, size * sizeof(TYPE));
+    vec->size = size;
+    return 0;
+}
+
 VEC_TYPE GENERIC(vector_new_)() {
-    VEC_TYPE vec;
-    GENERIC(vector_init_)(&vec);
-    return vec;
+    VEC_TYPE vec; GENERIC(vector_init_)(&vec); return vec;
 }
 
 VEC_TYPE GENERIC(vector_new_cap_)(size_t cap) {
-    VEC_TYPE vec;
-    GENERIC(vector_init_cap_)(&vec, cap);
-    return vec;
+    VEC_TYPE vec; GENERIC(vector_init_cap_)(&vec, cap); return vec;
+}
+
+VEC_TYPE GENERIC(vector_new_raw_)(TYPE *data, size_t cap, size_t size) {
+    return (VEC_TYPE) { size, cap, data };
+}
+
+VEC_TYPE GENERIC(vector_new_copy_)(const TYPE *data, size_t size) {
+    VEC_TYPE vec; GENERIC(vector_init_copy_)(&vec, data, size); return vec;
 }
 
 VEC_TYPE GENERIC(vector_lit_)(size_t n, ...) {
@@ -117,13 +134,16 @@ int GENERIC(vector_insert_)(VEC_TYPE *vec, TYPE val, size_t index) {
     return 0;
 }
 
-int GENERIC(vector_append_)(VEC_TYPE *dest, VEC_TYPE *src) {
+int GENERIC(vector_append_copy_)(VEC_TYPE *dest, const VEC_TYPE *src) {
     if (GENERIC(vector_reserve_)(dest, dest->size + src->size)) return -1;
 
-    for (size_t i = 0; i < src->size; i++) {
-        dest->data[dest->size + i] = src->data[i];
-    }
+    memmove(&dest->data[dest->size], src->data, src->size * sizeof(TYPE));
     dest->size += src->size;
+    return 0;
+}
+
+int GENERIC(vector_append_)(VEC_TYPE *dest, VEC_TYPE *src) {
+    if (GENERIC(vector_append_copy_)(dest, src)) return -1;
     src->size = 0;
     return 0;
 }
@@ -173,6 +193,13 @@ void GENERIC(vector_printf_)(VEC_TYPE *vec, const char *elem_fmt) {
     printf("]\n");
 }
 
+bool GENERIC(vector_is_sorted_)(VEC_TYPE *vec, int (*cmp_func)(TYPE, TYPE)) {
+    for (size_t i = 0; i+1 < vec->size; i++) {
+        if (cmp_func(vec->data[i], vec->data[i+1]) > 0) return false;
+    }
+    return true;
+}
+
 void GENERIC(vector_sort_inplace_)(VEC_TYPE *vec, int (*cmp_func)(TYPE, TYPE)) {
     // insertion sort
     for (size_t i = 1; i < vec->size; i++) {
@@ -213,4 +240,12 @@ bool GENERIC(vector_binary_search_)(VEC_TYPE *vec, TYPE val, size_t *index, int 
     //printf("end start: %zu size: %zu pivot: %zu\n", search_start, search_size, pivot);
     *index = search_start;
     return false;
+}
+
+void GENERIC(vector_for_each_)(VEC_TYPE *vec, void (*f)(TYPE*)) {
+    for (size_t i = 0; i < vec->size; i++) { f(&vec->data[i]); }
+}
+
+void GENERIC(vector_enumerate_)(VEC_TYPE *vec, void (*f)(size_t, TYPE*)) {
+    for (size_t i = 0; i < vec->size; i++) { f(i, &vec->data[i]); }
 }

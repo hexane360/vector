@@ -98,6 +98,24 @@ START_TEST(test_vec_insert) {
     vector_free_char(&vec);
 }
 
+START_TEST(test_vec_append) {
+    vector_char vec1 = vector_new_copy_char("abcd", 4);
+    vector_char vec2 = vector_new_copy_char("efgh", 4);
+
+    ck_assert_int_eq(0, vector_append_copy_char(&vec1, &vec2));
+    ck_assert_uint_eq(vec1.size, 8);
+    ck_assert_uint_eq(vec1.cap, 8);
+    ck_assert_uint_eq(vec2.size, 4);
+    ck_assert_mem_eq(vec1.data, "abcdefgh", 8);
+    ck_assert_mem_eq(vec2.data, "efgh", 4);
+
+    ck_assert_int_eq(0, vector_append_char(&vec1, &vec2));
+    ck_assert_uint_eq(vec1.size, 12);
+    ck_assert_uint_eq(vec1.cap, 12);
+    ck_assert_uint_eq(vec2.size, 0);
+    ck_assert_mem_eq(vec1.data, "abcdefghefgh", 12);
+}
+
 START_TEST(test_vec_replace) {
     vector_char vec = vector_lit_char(4, 'a', 'b', 'c', 'd');
 
@@ -112,7 +130,7 @@ START_TEST(test_vec_replace) {
 }
 
 START_TEST(test_vec_swap) {
-    vector_char vec = vector_lit_char(4, 'a', 'b', 'c', 'd');
+    vector_char vec = vector_new_copy_char("abcd", 4);
 
     ck_assert_int_eq(0, vector_swap_char(&vec, 0, 1));
     ck_assert_mem_eq(vec.data, "bacd", 4);
@@ -138,7 +156,9 @@ int cmp_char(char a, char b) {
 START_TEST(test_vec_sort_inplace) {
     vector_char vec = vector_lit_char(6, 'd', 'f', 'c', 'e', 'b', 'a');
 
+    ck_assert(!vector_is_sorted_char(&vec, cmp_char));
     vector_sort_inplace_char(&vec, cmp_char);
+    ck_assert(vector_is_sorted_char(&vec, cmp_char));
 
     ck_assert_int_eq(0, vector_push_char(&vec, '\0'));
     // tests stability as well
@@ -179,6 +199,7 @@ Suite *suite() {
     tcase_add_test(tc, test_vec_reserve);
     tcase_add_test(tc, test_vec_push_pop);
     tcase_add_test(tc, test_vec_insert);
+    tcase_add_test(tc, test_vec_append);
     tcase_add_test(tc, test_vec_replace);
     tcase_add_test(tc, test_vec_swap);
     tcase_add_test(tc, test_vec_sort_inplace);
